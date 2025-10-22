@@ -77,16 +77,17 @@ const Chatbot: React.FC = () => {
             };
 
             const systemInstruction = `You are an AI assistant for the portfolio of 이혜정, a content designer. Your primary function is to provide objective, factual information based *only* on the provided portfolio data. Do not use subjective or overly expressive language. Stick strictly to the facts presented in the data. For example, avoid phrases like '브랜드의 진정한 이야기를 만들어내는 디자이너'. If asked for an opinion or information not present in the data, politely state that you can only provide the information available in the portfolio. All responses must be in Korean. Here is the portfolio data in JSON format: ${JSON.stringify(summarizedData)}`;
-            
+
             try {
-                // FIX: Removed unsafe check for `process` which fails in browser-only environments like AI Studio.
-                // Directly access `process.env.API_KEY` and handle the case where it might be missing gracefully
-                // instead of throwing an error that crashes the app.
-                const apiKey = process.env.API_KEY;
+                // FIX: Re-introduced a safety check for the 'process' object. Accessing 'process.env.API_KEY' directly
+                // can cause a 'ReferenceError: process is not defined' in browser environments where 'process' is not
+                // polyfilled, leading to a white screen crash. This check ensures the code only attempts to access
+                // 'process.env' if 'process' actually exists, preventing the crash and allowing the app to render.
+                const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
 
                 if (!apiKey) {
-                   setMessages([{ role: 'model', text: 'AI 어시스턴트가 비활성화되었습니다. API 키가 설정되지 않았습니다.' }]);
-                   return; // Stop initialization
+                    setMessages([{ role: 'model', text: 'AI 어시스턴트가 비활성화되었습니다. API 키가 설정되지 않았습니다.' }]);
+                    return; // Stop initialization
                 }
                 const ai = new GoogleGenAI({ apiKey });
                 const newChat = ai.chats.create({
@@ -131,7 +132,7 @@ const Chatbot: React.FC = () => {
                     isFirstChunk = false;
                 }
                 modelResponse += chunk.text;
-                
+
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const lastMessage = newMessages[newMessages.length - 1];
@@ -143,14 +144,14 @@ const Chatbot: React.FC = () => {
                     return newMessages;
                 });
             }
-             if (isFirstChunk) {
+            if (isFirstChunk) {
                 setIsShowingTypingIndicator(false);
             }
         } catch (error) {
             console.error("Error sending message:", error);
             const errorMessage = getErrorMessage(error);
             setIsShowingTypingIndicator(false);
-             setMessages(prev => {
+            setMessages(prev => {
                 const lastMessage = prev[prev.length - 1];
                 if (lastMessage?.role === 'model') {
                     const newMessages = [...prev];
@@ -184,7 +185,7 @@ const Chatbot: React.FC = () => {
                         </div>
                     ))}
                     {isShowingTypingIndicator && (
-                         <div className="flex justify-start">
+                        <div className="flex justify-start">
                             <div className="max-w-[80%] py-2 px-4 rounded-2xl bg-white/10 rounded-bl-none">
                                 <div className="flex items-center space-x-1">
                                     <span className="w-2 h-2 bg-white/50 rounded-full animate-pulse"></span>
@@ -215,7 +216,7 @@ const Chatbot: React.FC = () => {
                     </div>
                 </form>
             </div>
-            
+
             {/* FAB */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
